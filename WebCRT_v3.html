@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRT Glitch Screen</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: black;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 80px;
+      box-shadow: inset 0 0 80px rgba(255, 255, 255, 0.3),
+                  0 0 150px rgba(0, 255, 255, 0.2),
+                  0 0 300px rgba(0, 255, 255, 0.05);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    #glow {
+      position: absolute;
+      inset: 0;
+      border-radius: 80px;
+      box-shadow: 0 0 80px rgba(0, 255, 255, 0.08),
+                  0 0 120px rgba(0, 255, 255, 0.05);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+      animation: flicker 3s infinite ease-in-out;
+    }
+
+    @keyframes flicker {
+      0%, 100% { opacity: 0.45; }
+      40% { opacity: 0.55; }
+      60% { opacity: 0.35; }
+      80% { opacity: 0.5; }
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 80px;
+      filter: contrast(1.5) brightness(0.8);
+      mask-image: radial-gradient(ellipse 80% 90% at center, white 90%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 90% at center, white 90%, transparent 100%);
+    }
+
+    .reflection {
+      position: absolute;
+      top: 5%;
+      left: 60%;
+      width: 25%;
+      height: 15%;
+      background: radial-gradient(ellipse at center, rgba(255,255,255,0.08), rgba(255,255,255,0));
+      transform: rotate(-10deg);
+      border-radius: 50%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .debug {
+      position: absolute;
+      bottom: 40px;
+      left: 40px;
+      font-family: monospace;
+      color: #00FF66;
+      font-size: 18px;
+      background: rgba(0,0,0,0.25);
+      padding: 14px;
+      border-radius: 6px;
+      z-index: 1;
+      pointer-events: none;
+      text-shadow: 0 0 2px #00FF66, 0 0 6px #004422;
+      backdrop-filter: blur(2px);
+      mask-image: radial-gradient(ellipse 80% 90% at center, white 90%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 90% at center, white 90%, transparent 100%);
+    }
+  </style>
+</head>
+<body>
+  <div id="glow"></div>
+  <canvas id="crt"></canvas>
+  <div class="reflection"></div>
+  <div class="debug" id="debugInfo"></div>
+
+  <script>
+    const canvas = document.getElementById('crt');
+    const ctx = canvas.getContext('2d');
+    const debugInfo = document.getElementById('debugInfo');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let lastFrameTime = performance.now();
+    let fps = 0;
+    let memoryUsage = Math.random() * 128 + 64;
+
+    function generateStatic() {
+      const imageData = ctx.createImageData(canvas.width, canvas.height);
+      const buffer = imageData.data;
+
+      for (let y = 0; y < canvas.height; y += 2) {
+        for (let x = 0; x < canvas.width; x += 2) {
+          const index = (y * canvas.width + x) * 4;
+          const value = Math.random() * 255;
+          buffer[index] = value;
+          buffer[index + 1] = value;
+          buffer[index + 2] = value;
+          buffer[index + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function scanlineOverlay() {
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      for (let y = 0; y < canvas.height; y += 4) {
+        ctx.fillRect(0, y, canvas.width, 2);
+      }
+    }
+
+    function chromaticAberrationMagnetic(x, y, maxRadius = 200) {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const buffer = imgData.data;
+
+      for (let i = 0; i < buffer.length - 4; i += 4) {
+        const pixelIndex = i / 4;
+        const px = pixelIndex % canvas.width;
+        const py = Math.floor(pixelIndex / canvas.width);
+        const dx = px - x;
+        const dy = py - y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx);
+
+        if (dist < maxRadius) {
+          const field = Math.sin(7 * angle) * Math.cos(dist / maxRadius * Math.PI);
+          const offset = Math.floor(6 * field);
+          buffer[i] = buffer[i + offset * 4] || buffer[i];
+          buffer[i + 2] = buffer[i + 2 - offset * 4] || buffer[i + 2];
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    function flickerEffect() {
+      const intensity = Math.random() * 0.4 + 0.6;
+      canvas.style.filter = `brightness(${intensity}) contrast(${1.5 + Math.random() * 0.5})`;
+      setTimeout(() => {
+        canvas.style.filter = 'contrast(1.5) brightness(0.8)';
+      }, 80);
+    }
+
+    function updateDebugInfo() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString();
+
+      const frameTime = performance.now();
+      fps = 1000 / (frameTime - lastFrameTime);
+      lastFrameTime = frameTime;
+
+      memoryUsage += (Math.random() - 0.5) * 0.5;
+      memoryUsage = Math.max(64, Math.min(256, memoryUsage));
+
+      let lines = [
+        `Time: ${timeString}`,
+        `Resolution: ${canvas.width}x${canvas.height}`,
+        `Mouse: ${mouseX}, ${mouseY}`,
+        `Scanlines: ${Math.floor(canvas.height / 4)}`,
+        `Magnet: ${mouseDown ? 'ON' : 'OFF'}`,
+        `Refresh Estimate: ${fps.toFixed(1)} FPS`,
+        `Memory: ${memoryUsage.toFixed(1)}MB`,
+        `CPU: Simulated JS Runtime`
+      ];
+
+      // Randomly flicker lines (1 in 30 chance per line)
+      lines = lines.map(line => Math.random() < 0.033 ? line.replace(/./g, c => Math.random() < 0.5 ? c : '*') : line);
+
+      debugInfo.innerText = lines.join('\n');
+    }
+
+    function animate() {
+      generateStatic();
+      scanlineOverlay();
+      if (mouseDown) chromaticAberrationMagnetic(mouseX, mouseY);
+      updateDebugInfo();
+      requestAnimationFrame(animate);
+    }
+
+    let mouseX = 0;
+    let mouseY = 0;
+    let mouseDown = false;
+
+    canvas.addEventListener('mousedown', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      mouseDown = true;
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      mouseDown = false;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+
+    canvas.addEventListener('click', () => {
+      flickerEffect();
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      mouseDown = false;
+    });
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>
