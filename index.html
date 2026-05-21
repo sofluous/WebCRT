@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebCRT Console</title>
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <div class="room-glow"></div>
+
+  <main class="tv">
+    <section class="screen-bay">
+      <div class="glow"></div>
+      <div class="screen-cavity">
+        <div class="screen-shell" id="screenShell">
+          <canvas id="crt" aria-label="Simulated CRT display"></canvas>
+          <div class="screen-overlay"></div>
+          <div class="scanlines"></div>
+          <div class="screen-reflection"></div>
+          <div class="vignette"></div>
+          <div class="osd" id="osd" data-visible="false">
+            <div class="osd-panel" id="osdHeadline">CH 02 AUX FEED</div>
+            <div class="osd-panel">
+              <div class="osd-grid" id="osdGrid">
+                <div>Tint</div><div class="osd-value">35</div>
+                <div>Hue</div><div class="osd-value">118</div>
+                <div>Sat</div><div class="osd-value">68</div>
+                <div>Bright</div><div class="osd-value">62</div>
+                <div>Noise</div><div class="osd-value">32</div>
+                <div>Map</div><div class="osd-value">180 x 120</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="control-panel">
+      <section class="panel-block power-strip">
+        <div class="channel-window">
+          <div class="channel-number" id="channelNumber">02</div>
+          <div class="channel-name" id="channelName">AUX FEED</div>
+        </div>
+        <button class="power-button" id="powerButton" type="button" aria-pressed="true" data-on="true">
+          <span>Power</span>
+        </button>
+      </section>
+
+      <section class="panel-block tuner-panel">
+        <div class="section-mark">Tuner</div>
+        <div class="dial-stack">
+          <button
+            class="knob channel-knob"
+            id="channelKnob"
+            type="button"
+            data-control="channel"
+            data-min="0"
+            data-max="3"
+            data-step="1"
+            aria-label="Channel selector"
+          ></button>
+          <div class="dial-buttons">
+            <button class="dial-button" id="channelDown" type="button" aria-label="Previous channel">-</button>
+            <button class="dial-button" id="channelUp" type="button" aria-label="Next channel">+</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-block trim-section">
+        <div class="section-mark">Picture</div>
+        <div class="knob-grid">
+          <div class="knob-card">
+            <button class="knob aux-knob" type="button" data-control="tint" data-min="0" data-max="100" data-step="1"></button>
+            <div class="knob-label">Tint</div>
+          </div>
+          <div class="knob-card">
+            <button class="knob aux-knob" type="button" data-control="hue" data-min="140" data-max="210" data-step="1"></button>
+            <div class="knob-label">Hue</div>
+          </div>
+          <div class="knob-card">
+            <button class="knob aux-knob" type="button" data-control="saturation" data-min="0" data-max="100" data-step="1"></button>
+            <div class="knob-label">Sat</div>
+          </div>
+          <div class="knob-card">
+            <button class="knob aux-knob" type="button" data-control="brightness" data-min="0" data-max="100" data-step="1"></button>
+            <div class="knob-label">Bright</div>
+          </div>
+          <div class="knob-card">
+            <button class="knob aux-knob" type="button" data-control="warp" data-min="0" data-max="100" data-step="1"></button>
+            <div class="knob-label">Warp</div>
+          </div>
+          <div class="knob-card">
+            <button class="knob aux-knob" type="button" data-control="noise" data-min="0" data-max="100" data-step="1"></button>
+            <div class="knob-label">Noise</div>
+          </div>
+          <div class="knob-card">
+            <button class="knob aux-knob" id="noiseResolutionKnob" type="button" data-control="noiseResolution" data-min="0" data-max="4" data-step="1"></button>
+            <div class="knob-label">Static</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-block adaptive-panel">
+        <div class="adaptive-header">
+          <div class="adaptive-readout" id="adaptiveTitle">AUX PANEL</div>
+          <div class="adaptive-readout adaptive-subreadout" id="adaptiveState">READY</div>
+        </div>
+        <div class="adaptive-grid">
+          <div class="adaptive-slot" id="adaptiveDialSlot">
+            <div class="adaptive-slot-label" id="adaptiveDialLabel">Sweep</div>
+            <div class="adaptive-slot-body">
+              <button
+                class="knob adaptive-knob"
+                id="adaptiveDial"
+                type="button"
+                data-control="signalSweep"
+                data-min="0"
+                data-max="100"
+                data-step="1"
+                aria-label="Adaptive dial"
+              ></button>
+            </div>
+          </div>
+          <div class="adaptive-slot" id="adaptiveSliderSlot">
+            <div class="adaptive-slot-label" id="adaptiveSliderLabel">Grid</div>
+            <div class="adaptive-slot-body">
+              <input class="adaptive-slider" id="adaptiveSlider" type="range" min="0" max="100" step="1" value="50" />
+            </div>
+          </div>
+          <div class="adaptive-slot" id="adaptiveToggleSlot">
+            <div class="adaptive-slot-label" id="adaptiveToggleLabel">Bloom</div>
+            <div class="adaptive-slot-body">
+              <button class="adaptive-toggle" id="adaptiveToggle" type="button" data-state="off">Off</button>
+            </div>
+          </div>
+          <div class="adaptive-slot" id="adaptiveButtonSlot">
+            <div class="adaptive-slot-label" id="adaptiveButtonLabel">Frame</div>
+            <div class="adaptive-slot-body">
+              <button class="adaptive-button" id="adaptiveButton" type="button">Wide</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="brand-bottom">WebCRT</div>
+    </aside>
+  </main>
+  <script src="./src/channels.js"></script>
+  <script src="./src/app.js"></script>
+</body>
+</html>
+
