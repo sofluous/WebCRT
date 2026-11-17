@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WebCRT Console</title>
   <link rel="stylesheet" href="./src/styles.css" />
+  <link rel="stylesheet" href="./src/controls.css" />
 </head>
 <body>
   <div class="room-glow"></div>
@@ -36,117 +37,54 @@
       </div>
     </section>
 
-    <aside class="control-panel">
-      <section class="panel-block power-strip">
-        <div class="channel-window">
-          <div class="channel-number" id="channelNumber">02</div>
-          <div class="channel-name" id="channelName">AUX FEED</div>
-        </div>
-        <button class="power-button" id="powerButton" type="button" aria-pressed="true" data-on="true">
-          <span>Power</span>
-        </button>
-      </section>
-
-      <section class="panel-block tuner-panel">
-        <div class="section-mark">Tuner</div>
-        <div class="dial-stack">
-          <button
-            class="knob channel-knob"
-            id="channelKnob"
-            type="button"
-            data-control="channel"
-            data-min="0"
-            data-max="3"
-            data-step="1"
-            aria-label="Channel selector"
-          ></button>
-          <div class="dial-buttons">
-            <button class="dial-button" id="channelDown" type="button" aria-label="Previous channel">-</button>
-            <button class="dial-button" id="channelUp" type="button" aria-label="Next channel">+</button>
+    <aside class="control-panel" aria-label="Television controls">
+      <section class="hardware-section tuner-section" aria-labelledby="tunerTitle">
+        <header class="hardware-header"><h2 id="tunerTitle">Channel / power</h2><output id="powerState">ON</output></header>
+        <div class="tuner-body">
+          <div class="channel-window"><span id="channelNumber">02</span><span id="channelName">AUX FEED</span></div>
+          <div class="rotary" data-group="channel">
+            <span class="dial-ticks" aria-hidden="true"></span>
+            <button class="rotary-face" id="channelKnob" type="button" aria-label="channel dial" aria-describedby="dialHelp"><span class="dial-grip"></span></button>
+            <span class="rotation-arrows" aria-hidden="true"><span class="arrow-arc"></span><span class="arrow-tip is-left"></span><span class="arrow-tip is-right"></span></span>
+            <span class="dial-cursor" aria-hidden="true"></span>
           </div>
         </div>
       </section>
-
-      <section class="panel-block trim-section">
-        <div class="section-mark">Picture</div>
-        <div class="knob-grid">
-          <div class="knob-card">
-            <button class="knob aux-knob" type="button" data-control="tint" data-min="0" data-max="100" data-step="1"></button>
-            <div class="knob-label">Tint</div>
+      <section class="hardware-section" aria-labelledby="pictureTitle">
+        <header class="hardware-header"><h2 id="pictureTitle">Picture / signal</h2></header>
+        <div class="hardware-body">
+          <div class="setting-selectors" id="pictureSelectors" role="group" aria-label="Picture and signal settings"></div>
+          <div class="encoder-column"><output class="setting-readout" aria-live="polite"><span id="pictureLabel">Bright</span><strong id="pictureValue">62</strong></output>
+            <div class="rotary" data-group="picture">
+            <span class="dial-ticks" aria-hidden="true"></span>
+            <button class="rotary-face" id="pictureDial" type="button" aria-label="picture dial" aria-describedby="dialHelp"><span class="dial-grip"></span></button>
+            <span class="rotation-arrows" aria-hidden="true"><span class="arrow-arc"></span><span class="arrow-tip is-left"></span><span class="arrow-tip is-right"></span></span>
+            <span class="dial-cursor" aria-hidden="true"></span>
           </div>
-          <div class="knob-card">
-            <button class="knob aux-knob" type="button" data-control="hue" data-min="140" data-max="210" data-step="1"></button>
-            <div class="knob-label">Hue</div>
-          </div>
-          <div class="knob-card">
-            <button class="knob aux-knob" type="button" data-control="saturation" data-min="0" data-max="100" data-step="1"></button>
-            <div class="knob-label">Sat</div>
-          </div>
-          <div class="knob-card">
-            <button class="knob aux-knob" type="button" data-control="brightness" data-min="0" data-max="100" data-step="1"></button>
-            <div class="knob-label">Bright</div>
-          </div>
-          <div class="knob-card">
-            <button class="knob aux-knob" type="button" data-control="warp" data-min="0" data-max="100" data-step="1"></button>
-            <div class="knob-label">Warp</div>
-          </div>
-          <div class="knob-card">
-            <button class="knob aux-knob" type="button" data-control="noise" data-min="0" data-max="100" data-step="1"></button>
-            <div class="knob-label">Noise</div>
-          </div>
-          <div class="knob-card">
-            <button class="knob aux-knob" id="noiseResolutionKnob" type="button" data-control="noiseResolution" data-min="0" data-max="4" data-step="1"></button>
-            <div class="knob-label">Static</div>
           </div>
         </div>
       </section>
-
-      <section class="panel-block adaptive-panel">
-        <div class="adaptive-header">
-          <div class="adaptive-readout" id="adaptiveTitle">AUX PANEL</div>
-          <div class="adaptive-readout adaptive-subreadout" id="adaptiveState">READY</div>
-        </div>
-        <div class="adaptive-grid">
-          <div class="adaptive-slot" id="adaptiveDialSlot">
-            <div class="adaptive-slot-label" id="adaptiveDialLabel">Sweep</div>
-            <div class="adaptive-slot-body">
-              <button
-                class="knob adaptive-knob"
-                id="adaptiveDial"
-                type="button"
-                data-control="signalSweep"
-                data-min="0"
-                data-max="100"
-                data-step="1"
-                aria-label="Adaptive dial"
-              ></button>
-            </div>
+      <section class="hardware-section" aria-labelledby="stationTitle">
+        <header class="hardware-header"><h2 id="stationTitle">AUX FEED</h2></header>
+        <div class="hardware-body">
+          <div class="setting-selectors" id="stationSelectors" role="group" aria-label="Station settings"></div>
+          <div class="encoder-column"><output class="setting-readout" aria-live="polite"><span id="stationLabel">Sweep</span><strong id="stationValue">54</strong></output>
+            <div class="rotary" data-group="station">
+            <span class="dial-ticks" aria-hidden="true"></span>
+            <button class="rotary-face" id="stationDial" type="button" aria-label="station dial" aria-describedby="dialHelp"><span class="dial-grip"></span></button>
+            <span class="rotation-arrows" aria-hidden="true"><span class="arrow-arc"></span><span class="arrow-tip is-left"></span><span class="arrow-tip is-right"></span></span>
+            <span class="dial-cursor" aria-hidden="true"></span>
           </div>
-          <div class="adaptive-slot" id="adaptiveSliderSlot">
-            <div class="adaptive-slot-label" id="adaptiveSliderLabel">Grid</div>
-            <div class="adaptive-slot-body">
-              <input class="adaptive-slider" id="adaptiveSlider" type="range" min="0" max="100" step="1" value="50" />
-            </div>
-          </div>
-          <div class="adaptive-slot" id="adaptiveToggleSlot">
-            <div class="adaptive-slot-label" id="adaptiveToggleLabel">Bloom</div>
-            <div class="adaptive-slot-body">
-              <button class="adaptive-toggle" id="adaptiveToggle" type="button" data-state="off">Off</button>
-            </div>
-          </div>
-          <div class="adaptive-slot" id="adaptiveButtonSlot">
-            <div class="adaptive-slot-label" id="adaptiveButtonLabel">Frame</div>
-            <div class="adaptive-slot-body">
-              <button class="adaptive-button" id="adaptiveButton" type="button">Wide</button>
-            </div>
           </div>
         </div>
       </section>
-
       <div class="brand-bottom">WebCRT</div>
+      <p class="visually-hidden" id="dialHelp">Hold and move around a dial to turn it, or use arrow keys or the mouse wheel. Escape releases the cursor. Press the channel dial to push it off; drag its center upward to pull it on. Enter or Space also switches power. Other dial pushes have no assigned action.</p>
+      <output class="visually-hidden" id="controlStatus" aria-live="polite"></output>
     </aside>
   </main>
   <script src="./src/channels.js"></script>
+  <script src="./src/controls.js"></script>
   <script src="./src/app.js"></script>
 </body>
 </html>

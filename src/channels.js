@@ -12,6 +12,7 @@ window.WebCRTChannels = (() => {
     { number: "07", label: "COLOR BARS", mode: "bars" },
     { number: "11", label: "WEATHERSCAN", mode: "weather" },
     { number: "13", label: "DEAD AIR", mode: "snow" },
+    { number: "15", label: "PURE NOISE", mode: "noise" },
     { number: "17", label: "FOCUS TIMER", mode: "timer" }
   ];
 
@@ -47,6 +48,14 @@ window.WebCRTChannels = (() => {
       slider: { key: "snowHiss", label: "Hiss", min: 0, max: 100, step: 1 },
       toggle: { key: "snowGhost", label: "Ghost", offLabel: "Off", onLabel: "On" },
       button: { key: "snowBurst", label: "Burst", options: ["Low", "Mid", "High"] }
+    },
+    noise: {
+      title: "NOISE CTRL",
+      status: "NOISE",
+      dial: { key: "noiseDensity", label: "Density", min: 0, max: 100, step: 1 },
+      slider: { key: "noiseStreaks", label: "Streaks", min: 0, max: 100, step: 1 },
+      toggle: { key: "noiseColor", label: "Color", offLabel: "Mono", onLabel: "RGB" },
+      button: { key: "noisePattern", label: "Pattern", options: ["Snow", "Rainbow", "Tear"] }
     },
     weather: {
       title: "WEATHER CTRL",
@@ -87,6 +96,10 @@ window.WebCRTChannels = (() => {
     snowHiss: 72,
     snowGhost: 1,
     snowBurst: 1,
+    noiseDensity: 72,
+    noiseStreaks: 68,
+    noiseColor: 1,
+    noisePattern: 1,
     timerMinutes: 25,
     timerGlow: 44,
     timerRun: 0,
@@ -306,6 +319,66 @@ window.WebCRTChannels = (() => {
       sceneCtx.fillStyle = "rgba(206, 238, 243, 0.1)";
       sceneCtx.fillText("...HELLO?... ", width * 0.42, height * 0.26);
     }
+  }
+
+  const noisePalette = [
+    [242, 242, 242], [248, 225, 38], [30, 230, 239], [42, 233, 69],
+    [235, 40, 221], [242, 48, 38], [45, 85, 243]
+  ];
+
+  // Work only on the small cached noise map. Row correlation creates horizontal
+  // streaks and broken rainbow bands without processing display-sized pixels.
+  function fillPureNoise(imageData, state, time, random = Math.random) {
+    const { width, height, data } = imageData;
+    const density = state.adaptive.noiseDensity / 100;
+    const pattern = state.adaptive.noisePattern;
+    const streaks = pattern === 0 ? 0 : state.adaptive.noiseStreaks / 100;
+    const saturation = state.adaptive.noiseColor ? Math.min(1, state.saturation / 42) : 0;
+    const hueShift = Math.round((state.hue - 168) / 10);
+    const palette = noisePalette.map(rgb => {
+      const luminance = rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722;
+      return rgb.map(component => luminance + (component - luminance) * saturation);
+    });
+    const grainLevel = .55 + state.noise / 200;
+    let tearOffset = 0;
+    for (let y = 0; y < height; y++) {
+      if (y % 7 === 0) tearOffset = (random() - .5) * width * streaks;
+      const center = width * (.5 + .24 * Math.sin(y / height * 8 + time * .28)) +
+        (random() - .5) * width * .07 + (pattern === 2 ? tearOffset : 0);
+      const bandWidth = width * (.08 + streaks * .3);
+      const rowColor = Math.floor(y / 2 + time * 9);
+      const rowBrightness = .5 + random() * .5;
+      for (let x = 0; x < width; x++) {
+        const offset = (y * width + x) * 4;
+        const inBand = Math.abs(x - center) < bandWidth;
+        const band = streaks > 0 && inBand && random() < streaks * .9;
+        const grain = random();
+        const lit = band || grain < density * .62;
+        if (!lit) {
+          data[offset] = data[offset + 1] = data[offset + 2] = 2;
+          data[offset + 3] = 255;
+          continue;
+        }
+        let colorIndex = band ? Math.floor((x - center + bandWidth) / (bandWidth * 2) * 7) + rowColor : Math.floor(random() * 7);
+        colorIndex = ((colorIndex + hueShift) % 7 + 7) % 7;
+        const color = palette[colorIndex];
+        const gain = band ? rowBrightness : (.25 + random() * .75) * grainLevel;
+        // Adjacent repeated samples make small horizontal color dashes rather
+        // than independent RGB snow alone. Off pixels always overwrite old data.
+        const smear = lit && x > 0 && streaks > 0 && random() < streaks * .3;
+        for (let component = 0; component < 3; component++) {
+          data[offset + component] = smear ? data[offset - 4 + component] : color[component] * gain;
+        }
+        data[offset + 3] = 255;
+      }
+    }
+  }
+
+  function drawPureNoiseFeed({ sceneCtx, noiseCanvas, width, height }) {
+    sceneCtx.save();
+    sceneCtx.imageSmoothingEnabled = false;
+    sceneCtx.drawImage(noiseCanvas, 0, 0, width, height);
+    sceneCtx.restore();
   }
 
   function drawWeatherFeed(env) {
@@ -531,6 +604,9 @@ window.WebCRTChannels = (() => {
       case "snow":
         drawSnowFeed(env);
         break;
+      case "noise":
+        drawPureNoiseFeed(env);
+        break;
       case "timer":
         drawTimerFeed(env);
         break;
@@ -545,6 +621,7 @@ window.WebCRTChannels = (() => {
     channelProfiles,
     channels,
     formatChannelValue,
+    fillPureNoise,
     handleChannelStateChange,
     renderChannelScene,
     runtimeDefaults,

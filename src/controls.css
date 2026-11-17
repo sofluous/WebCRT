@@ -1,0 +1,249 @@
+/* Physical materials are WebCRT product identity, independent of the CRT scene palette. */
+.control-panel {
+  --hardware-ink: #252d32;
+  --hardware-muted: #485157;
+  --hardware-line: #737e85;
+  --hardware-light: #f4f6f6;
+  --hardware-mid: #c8cdd0;
+  --hardware-dark: #929ca3;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 22px;
+  color: var(--hardware-ink);
+  background: linear-gradient(160deg, #5c5148, #2c2824);
+  box-shadow: inset 0 1px 0 #ffffff24, inset 0 -14px 24px #0005;
+}
+
+.hardware-section {
+  position: relative;
+  min-width: 0;
+  padding: 16px 14px 18px;
+  border: 1px solid var(--hardware-line);
+  border-radius: 9px;
+  background:
+    repeating-linear-gradient(0deg, #ffffff0c 0 1px, #00000006 1px 2px, transparent 2px 4px),
+    linear-gradient(115deg, var(--hardware-mid), var(--hardware-light) 25%, #d7dcdf 47%, #adb6bc 80%, #dce1e3);
+  box-shadow: inset 0 1px 0 #fff9, inset 0 -1px 1px #313b4370, 0 5px 9px #0003;
+}
+
+.hardware-section::before,
+.hardware-section::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f8fafb, #7f898e 48%, #39444b 50%, #c8ced1 65%);
+  box-shadow: 0 1px 1px #fff8;
+}
+.hardware-section::before { left: 7px; }
+.hardware-section::after { right: 7px; }
+
+.hardware-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.hardware-header h2,
+.hardware-header output {
+  margin: 0;
+  font: 600 10px/1.3 'Consolas', monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 #ffffff9c;
+}
+.hardware-header output { color: #25544b; }
+.tuner-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  gap: 8px;
+  align-items: center;
+}
+.channel-window {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 8px;
+  border: 1px solid #6c7d83;
+  border-radius: 5px;
+  background: linear-gradient(#111e23, #04090a);
+  color: #ceeeed;
+  box-shadow: inset 0 2px 5px #000c, 0 1px 0 #fff9;
+  font-family: 'Consolas', monospace;
+}
+#channelNumber { font-size: 28px; line-height: 1; text-shadow: 0 0 10px #83c2bd60; }
+#channelName { font-size: 9px; letter-spacing: .04em; overflow-wrap: anywhere; }
+
+.hardware-body {
+  display: grid;
+  grid-template-columns: 86px minmax(132px, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+.setting-selectors { display: grid; gap: 4px; align-content: start; }
+.setting-selector {
+  position: relative;
+  width: 86px;
+  height: 22px;
+  padding: 0 7px 0 14px;
+  border: 1px solid #768188;
+  border-radius: 3px;
+  background: linear-gradient(#f6f8f8, #c7ced2 50%, #aab4bb);
+  box-shadow: inset 0 1px 0 #fff, 0 2px 2px #24303940;
+  color: var(--hardware-ink);
+  font: 11px/1 'Consolas', monospace;
+  text-align: left;
+  cursor: pointer;
+}
+.setting-selector::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: calc(50% - 2px);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #707d82;
+  box-shadow: inset 0 1px 1px #0006;
+}
+.setting-selector[aria-pressed='true'] {
+  background: linear-gradient(#657378, #424f54);
+  color: #effaf8;
+  box-shadow: inset 0 2px 3px #0007, 0 1px 0 #fff9;
+}
+.setting-selector[aria-pressed='true']::before { background: #b7efdf; box-shadow: 0 0 4px #b7efdf8a; }
+.setting-selector:hover { filter: brightness(1.08); }
+.setting-selector:active { transform: translateY(1px); }
+.encoder-column { display: grid; justify-items: center; gap: 8px; min-width: 0; }
+.setting-readout {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  max-width: 100%;
+  min-height: 35px;
+  font: 10px/1.2 'Consolas', monospace;
+  text-transform: uppercase;
+  color: var(--hardware-muted);
+  text-align: center;
+}
+.setting-readout strong {
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--hardware-ink);
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.rotary {
+  --dial-size: 132px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--dial-size);
+  height: var(--dial-size);
+  touch-action: none;
+  user-select: none;
+}
+.dial-ticks {
+  position: absolute;
+  inset: 1px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from -1deg, var(--hardware-muted) 0deg 1deg, transparent 1deg 10deg);
+  mask: radial-gradient(circle, transparent 60%, #000 61% 68%, transparent 69%);
+  pointer-events: none;
+}
+.rotary[data-group='channel'] .dial-ticks {
+  background: repeating-conic-gradient(from -1deg, var(--hardware-muted) 0deg 2deg, transparent 2deg 30deg);
+}
+.rotary-face {
+  position: relative;
+  width: 98px;
+  height: 98px;
+  border: 1px solid #626d74;
+  border-radius: 50%;
+  padding: 0;
+  color: var(--hardware-ink);
+  background: linear-gradient(150deg, #f1f4f5, #85929c 55%, #dae0e3 80%, #5e6c75);
+  box-shadow: 0 5px 0 #4a565f, 0 7px 7px #14212a66, inset 0 1px 1px #fff;
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.rotary-face::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid #a3adb3;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(circle at center, #ffffff14 0 .5px, #00000008 .5px 1px, transparent 1px 2px),
+    conic-gradient(from 10deg, #bac3c8, #f6f8f9 36deg, #9da9b2 85deg, #e9edf0 140deg, #9ca9b1 185deg, #f4f6f8 232deg, #98a6b0 285deg, #d5dde2 325deg, #bac3c8);
+  box-shadow: inset 0 0 0 2px #ffffff48, 0 1px 2px #0006;
+  pointer-events: none;
+}
+.dial-grip { position: relative; z-index: 1; font: 10px 'Consolas', monospace; letter-spacing: .1em; }
+.rotary[data-power='off'] .rotary-face {
+  transform: translateY(3px) scale(.94);
+  box-shadow: 0 1px 0 #48565f, inset 0 0 0 4px #62717b, 0 2px 3px #0004;
+}
+.rotary-face:hover { filter: brightness(1.07); }
+.rotary.is-held .rotary-face { filter: brightness(.95); box-shadow: 0 2px 0 #46535d, inset 0 0 0 3px #687b88, 0 3px 4px #0005; }
+.rotary.is-held .dial-ticks { background: repeating-conic-gradient(var(--hardware-ink) 0 2deg, transparent 2deg 10deg); }
+.rotary-face:focus-visible,
+.setting-selector:focus-visible { outline: 2px solid #123f50; outline-offset: 4px; }
+
+.rotation-arrows {
+  display: none;
+  position: absolute;
+  inset: -7px;
+  color: var(--hardware-ink);
+  transform: rotate(var(--gesture-angle, 0deg));
+  pointer-events: none;
+}
+.rotary:hover:not(.is-held) .rotation-arrows,
+.rotary:focus-within:not(.is-held) .rotation-arrows,
+.rotary.at-rim .rotation-arrows { display: block; }
+.arrow-arc { position: absolute; inset: 0; border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%; }
+.arrow-tip { position: absolute; top: 12%; width: 7px; height: 7px; border-right: 2px solid; border-bottom: 2px solid; }
+.arrow-tip.is-right { right: 12%; transform: rotate(32deg); }
+.arrow-tip.is-left { left: 12%; transform: rotate(58deg); }
+.dial-cursor {
+  display: none;
+  position: absolute;
+  left: var(--cursor-x, 50%);
+  top: var(--cursor-y, 50%);
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--hardware-light);
+  border-radius: 50%;
+  background: var(--hardware-ink);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.rotary.is-held .dial-cursor { display: block; }
+.control-panel[data-gesture='active'],
+.control-panel[data-gesture='active'] * { cursor: none !important; }
+.brand-bottom { padding: 4px; text-align: center; color: #e4d9c7b0; font-size: 10px; letter-spacing: .35em; text-transform: uppercase; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (max-width: 980px) {
+  .control-panel { width: 100%; }
+  .hardware-body { grid-template-columns: 86px minmax(132px, 1fr); }
+}
+@media (pointer: coarse) {
+  /* Preserve the compact key face while allocating a non-overlapping touch row. */
+  .setting-selectors { gap: 22px; padding-block: 11px; }
+  .setting-selector::after { content: ''; position: absolute; inset: -11px 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .setting-selector { transition: filter 100ms ease, box-shadow 100ms ease; }
+  .rotary-face { transition: filter 100ms ease, box-shadow 100ms ease; }
+}

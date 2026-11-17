@@ -3,6 +3,7 @@ const {
   channelProfiles,
   channels,
   formatChannelValue,
+  fillPureNoise,
   handleChannelStateChange,
   renderChannelScene,
   runtimeDefaults,
@@ -12,26 +13,9 @@ const {
 const canvas = document.getElementById("crt");
 const ctx = canvas.getContext("2d", { alpha: false });
 const screenShell = document.getElementById("screenShell");
-const powerButton = document.getElementById("powerButton");
 const osd = document.getElementById("osd");
 const osdHeadline = document.getElementById("osdHeadline");
 const osdGrid = document.getElementById("osdGrid");
-const channelNumber = document.getElementById("channelNumber");
-const channelName = document.getElementById("channelName");
-const channelKnob = document.getElementById("channelKnob");
-const channelUp = document.getElementById("channelUp");
-const channelDown = document.getElementById("channelDown");
-const adaptiveTitle = document.getElementById("adaptiveTitle");
-const adaptiveState = document.getElementById("adaptiveState");
-const adaptiveDialLabel = document.getElementById("adaptiveDialLabel");
-const adaptiveDial = document.getElementById("adaptiveDial");
-const adaptiveSliderLabel = document.getElementById("adaptiveSliderLabel");
-const adaptiveSlider = document.getElementById("adaptiveSlider");
-const adaptiveToggleLabel = document.getElementById("adaptiveToggleLabel");
-const adaptiveToggle = document.getElementById("adaptiveToggle");
-const adaptiveButtonLabel = document.getElementById("adaptiveButtonLabel");
-const adaptiveButton = document.getElementById("adaptiveButton");
-
 const state = {
   powerOn: true,
   channel: 0,
@@ -57,6 +41,7 @@ const state = {
 const noiseCanvas = document.createElement("canvas");
 const noiseCtx = noiseCanvas.getContext("2d", { alpha: false });
 let lastNoiseRefresh = 0;
+let noiseImageData = null;
 
 const noisePresets = [
   { width: 72, height: 48, label: "72 x 48" },
@@ -101,8 +86,16 @@ function updateNoiseCanvasSize() {
   }
 }
 
-function refreshNoise() {
-  const imageData = noiseCtx.createImageData(noiseCanvas.width, noiseCanvas.height);
+function refreshNoise(time = performance.now() * .001) {
+  if (!noiseImageData || noiseImageData.width !== noiseCanvas.width || noiseImageData.height !== noiseCanvas.height) {
+    noiseImageData = noiseCtx.createImageData(noiseCanvas.width, noiseCanvas.height);
+  }
+  const imageData = noiseImageData;
+  if (channels[state.channel].mode === 'noise') {
+    fillPureNoise(imageData, state, time);
+    noiseCtx.putImageData(imageData, 0, 0);
+    return;
+  }
   const pixels = imageData.data;
   const cyanLift = 12 + state.tint * 0.35;
 
@@ -117,12 +110,6 @@ function refreshNoise() {
   noiseCtx.putImageData(imageData, 0, 0);
 }
 
-function setKnobRotation(knob, min, max, value) {
-  const ratio = max === min ? 0 : (value - min) / (max - min);
-  const degrees = -135 + ratio * 270;
-  knob.style.setProperty("--rotation", degrees + "deg");
-}
-
 function getActiveProfile() {
   return channelProfiles[channels[state.channel].mode] || channelProfiles.signal;
 }
@@ -134,51 +121,11 @@ function getControlValue(key) {
   return state.adaptive[key];
 }
 
-function setControlValue(key, nextValue) {
-  if (Object.prototype.hasOwnProperty.call(state, key)) {
-    state[key] = nextValue;
-  } else {
-    state.adaptive[key] = nextValue;
-  }
-}
-
 function formatAdaptiveValue(control, value) {
   if (!control) {
     return "--";
   }
   return formatChannelValue(control, value, state);
-}
-
-function renderAdaptivePanel() {
-  const profile = getActiveProfile();
-  const dialValue = getControlValue(profile.dial.key);
-  const sliderValue = getControlValue(profile.slider.key);
-  const toggleValue = getControlValue(profile.toggle.key);
-  const buttonValue = getControlValue(profile.button.key);
-
-  adaptiveTitle.textContent = profile.title;
-  adaptiveState.textContent = "CH " + channels[state.channel].number + " / " + profile.status;
-
-  adaptiveDialLabel.textContent = profile.dial.label;
-  adaptiveDial.dataset.control = profile.dial.key;
-  adaptiveDial.dataset.min = String(profile.dial.min);
-  adaptiveDial.dataset.max = String(profile.dial.max);
-  adaptiveDial.dataset.step = String(profile.dial.step);
-  setKnobRotation(adaptiveDial, profile.dial.min, profile.dial.max, dialValue);
-
-  adaptiveSliderLabel.textContent = profile.slider.label;
-  adaptiveSlider.min = String(profile.slider.min);
-  adaptiveSlider.max = String(profile.slider.max);
-  adaptiveSlider.step = String(profile.slider.step);
-  adaptiveSlider.value = String(sliderValue);
-
-  adaptiveToggleLabel.textContent = profile.toggle.label;
-  adaptiveToggle.textContent = formatAdaptiveValue(profile.toggle, toggleValue);
-  adaptiveToggle.dataset.state = toggleValue ? "on" : "off";
-
-  adaptiveButtonLabel.textContent = profile.button.label;
-  adaptiveButton.textContent = formatAdaptiveValue(profile.button, buttonValue);
-
 }
 
 function showOsd() {
@@ -205,117 +152,19 @@ function renderOsd() {
   ].map((row) => "<div>" + row[0] + "</div><div class=\"osd-value\">" + row[1] + "</div>").join("");
 }
 
-function updateControlReadouts() {
-  powerButton.dataset.on = String(state.powerOn);
-  powerButton.setAttribute("aria-pressed", String(state.powerOn));
-
-  const channel = channels[state.channel];
-  channelNumber.textContent = channel.number;
-  channelName.textContent = channel.label;
-  updateNoiseCanvasSize();
-  renderAdaptivePanel();
-  renderOsd();
-
-  const knobElements = document.querySelectorAll(".knob[data-control]");
-  knobElements.forEach((knob) => {
-    const key = knob.dataset.control;
-    const min = Number(knob.dataset.min);
-    const max = Number(knob.dataset.max);
-    setKnobRotation(knob, min, max, getControlValue(key));
-  });
-}
-
-function setChannel(index) {
-  const maxIndex = channels.length - 1;
-  state.channel = ((index % channels.length) + channels.length) % channels.length;
-  setKnobRotation(channelKnob, 0, maxIndex, state.channel);
-  updateControlReadouts();
-  showOsd();
-}
-
-function nudgeChannel(delta) {
-  setChannel(state.channel + delta);
-  state.magnetForce = 1;
-}
-
-function adjustControl(key, nextValue) {
-  const knob = document.querySelector('.knob[data-control="' + key + '"]');
-  if (!knob) {
-    return;
-  }
-
-  if (key === "noiseResolution") {
-    setNoiseResolution(nextValue);
-    setKnobRotation(knob, 0, noisePresets.length - 1, state.noiseResolution);
+const controls = window.WebCRTControls.mount({
+  state, channels, channelProfiles, noisePresets, formatValue: formatChannelValue,
+  onChange(key) {
+    handleChannelStateChange(state, key);
+    if (key === 'noiseResolution') {
+      updateNoiseCanvasSize();
+    }
+    // Refresh on retuning as well, so color noise never leaks into other feeds.
+    refreshNoise();
+    renderOsd();
     showOsd();
-    return;
   }
-
-  const min = Number(knob.dataset.min);
-  const max = Number(knob.dataset.max);
-  const step = Number(knob.dataset.step);
-  const snapped = Math.round(nextValue / step) * step;
-  if (Object.prototype.hasOwnProperty.call(state, key)) {
-    state[key] = clamp(snapped, min, max);
-  } else {
-    state.adaptive[key] = clamp(snapped, min, max);
-  }
-  handleChannelStateChange(state, key);
-  setKnobRotation(knob, min, max, getControlValue(key));
-  updateControlReadouts();
-  showOsd();
-}
-
-function setAdaptiveSliderValue(nextValue) {
-  const profile = getActiveProfile();
-  const control = profile.slider;
-  const snapped = Math.round(nextValue / control.step) * control.step;
-  setControlValue(control.key, clamp(snapped, control.min, control.max));
-  handleChannelStateChange(state, control.key);
-  updateControlReadouts();
-  showOsd();
-}
-
-function toggleAdaptiveValue() {
-  const profile = getActiveProfile();
-  const control = profile.toggle;
-  setControlValue(control.key, getControlValue(control.key) ? 0 : 1);
-  handleChannelStateChange(state, control.key);
-  updateControlReadouts();
-  showOsd();
-}
-
-function cycleAdaptiveButton() {
-  const profile = getActiveProfile();
-  const control = profile.button;
-  const count = Array.isArray(control.options) ? control.options.length : 0;
-  if (!count) {
-    return;
-  }
-  const nextIndex = (getControlValue(control.key) + 1) % count;
-  setControlValue(control.key, nextIndex);
-  handleChannelStateChange(state, control.key);
-  updateControlReadouts();
-  showOsd();
-}
-
-function setNoiseResolution(index) {
-  state.noiseResolution = clamp(Math.round(index), 0, noisePresets.length - 1);
-  updateNoiseCanvasSize();
-  refreshNoise();
-  renderOsd();
-}
-
-function togglePower() {
-  state.powerOn = !state.powerOn;
-  if (state.powerOn) {
-    state.magnetForce = 1.2;
-  } else {
-    state.magnetForce = 0;
-  }
-  updateControlReadouts();
-  showOsd();
-}
+});
 
 function drawScene(time) {
   const width = sceneCanvas.width;
@@ -323,7 +172,11 @@ function drawScene(time) {
   const channel = channels[state.channel];
 
   sceneCtx.clearRect(0, 0, width, height);
-  renderChannelScene({ channels, channel, height, sceneCtx, state, time, width });
+  renderChannelScene({ channels, channel, height, sceneCtx, state, time, width, noiseCanvas });
+
+  // Pure noise is already the complete feed; omit the shared tinted overlay
+  // and authored scan-bar decorations used by the other stations.
+  if (channel.mode === 'noise') return;
 
   const detailBoost = state.noiseResolution / (noisePresets.length - 1);
   const snowBoost = channel.mode === "snow" ? (0.8 + state.adaptive.snowHiss / 55) : 1;
@@ -397,6 +250,7 @@ function render(now) {
   state.lastTime = now;
   state.fps = 1000 / Math.max(16, delta);
   stepChannelState(state, delta);
+  controls.refresh();
   renderOsd();
 
   const time = now * 0.001;
@@ -421,57 +275,6 @@ function render(now) {
   requestAnimationFrame(render);
 }
 
-function bindKnob(knob) {
-  const key = knob.dataset.control;
-  const min = Number(knob.dataset.min);
-  const max = Number(knob.dataset.max);
-  const step = Number(knob.dataset.step);
-  const sensitivity = key === "channel" ? 0.035 : 0.28;
-
-  let startY = 0;
-  let startValue = 0;
-
-  const onMove = (event) => {
-    const delta = startY - event.clientY;
-    const nextValue = startValue + delta * sensitivity * step;
-    if (key === "channel") {
-      setChannel(Math.round(nextValue));
-    } else {
-      adjustControl(key, nextValue);
-    }
-  };
-
-  const onUp = () => {
-    window.removeEventListener("pointermove", onMove);
-    window.removeEventListener("pointerup", onUp);
-  };
-
-  knob.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    startY = event.clientY;
-    startValue = getControlValue(key);
-    knob.setPointerCapture(event.pointerId);
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  });
-
-  knob.addEventListener("wheel", (event) => {
-    event.preventDefault();
-    const direction = event.deltaY > 0 ? -1 : 1;
-    if (key === "channel") {
-      nudgeChannel(direction);
-    } else if (key === "noiseResolution") {
-      setNoiseResolution(state.noiseResolution + direction);
-      showOsd();
-    } else {
-      adjustControl(key, getControlValue(key) + direction * step);
-    }
-  });
-}
-
-powerButton.addEventListener("click", togglePower);
-channelUp.addEventListener("click", () => nudgeChannel(1));
-channelDown.addEventListener("click", () => nudgeChannel(-1));
 canvas.addEventListener("pointerdown", (event) => {
   const rect = canvas.getBoundingClientRect();
   state.magnetX = clamp((event.clientX - rect.left) / rect.width, 0, 1);
@@ -489,19 +292,11 @@ canvas.addEventListener("pointermove", (event) => {
   state.magnetForce = 1;
 });
 
-document.querySelectorAll(".knob[data-control]").forEach(bindKnob);
-adaptiveSlider.addEventListener("input", () => {
-  setAdaptiveSliderValue(Number(adaptiveSlider.value));
-});
-adaptiveToggle.addEventListener("click", toggleAdaptiveValue);
-adaptiveButton.addEventListener("click", cycleAdaptiveButton);
-
 window.addEventListener("resize", setCanvasSize);
 
 updateNoiseCanvasSize();
 refreshNoise();
-updateControlReadouts();
-setChannel(0);
+controls.refresh();
 showOsd();
 requestAnimationFrame(render);
 
