@@ -13,7 +13,8 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(process.env.WEBCRT_TEST_URL || 'http://127.0.0.1:5517/');
   await page.locator('#channelKnob').focus();
-  for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowRight');
+  const noiseIndex = await page.evaluate(() => channels.findIndex(channel => channel.mode === 'noise'));
+  for (let i = 0; i < noiseIndex; i++) await page.keyboard.press('ArrowRight');
   assert.equal(await page.locator('#channelNumber').textContent(), '15');
   assert.equal(await page.locator('#stationTitle').textContent(), 'PURE NOISE');
   assert.deepEqual(await page.locator('#stationSelectors button').allTextContents(), ['Density', 'Streaks', 'Color', 'Pattern']);

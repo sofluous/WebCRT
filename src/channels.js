@@ -10,6 +10,7 @@ window.WebCRTChannels = (() => {
     { number: "02", label: "AUX FEED", mode: "signal" },
     { number: "04", label: "DIAGNOSTIC", mode: "diag" },
     { number: "07", label: "COLOR BARS", mode: "bars" },
+    { number: "09", label: "BROADCAST ARCHIVE", mode: "archive" },
     { number: "11", label: "WEATHERSCAN", mode: "weather" },
     { number: "13", label: "DEAD AIR", mode: "snow" },
     { number: "15", label: "PURE NOISE", mode: "noise" },
@@ -40,6 +41,14 @@ window.WebCRTChannels = (() => {
       slider: { key: "barsLevel", label: "Level", min: 0, max: 100, step: 1 },
       toggle: { key: "barsMono", label: "Mono", offLabel: "RGB", onLabel: "Mono" },
       button: { key: "barsMode", label: "Mode", options: ["SMPTE", "PAL", "Split"] }
+    },
+    archive: {
+      title: "ARCHIVE CTRL",
+      status: "REPLAY",
+      dial: { key: "archiveCard", label: "Card", min: 0, max: 5, step: 1 },
+      slider: { key: "archiveDrift", label: "Drift", min: 0, max: 100, step: 1 },
+      toggle: { key: "archiveSubtitle", label: "Subtitle", offLabel: "Off", onLabel: "On" },
+      button: { key: "archiveSource", label: "Source", options: ["Station", "Field", "Service"] }
     },
     snow: {
       title: "DEAD AIR",
@@ -88,6 +97,10 @@ window.WebCRTChannels = (() => {
     barsLevel: 64,
     barsMono: 0,
     barsMode: 0,
+    archiveCard: 0,
+    archiveDrift: 28,
+    archiveSubtitle: 1,
+    archiveSource: 0,
     weatherHour: 6,
     weatherRadar: 62,
     weatherAlert: 1,
@@ -107,6 +120,7 @@ window.WebCRTChannels = (() => {
   };
 
   const runtimeDefaults = {
+    archiveElapsed: 0,
     timerRemaining: 25 * 60,
     timerLastMinutes: 25
   };
@@ -290,6 +304,120 @@ window.WebCRTChannels = (() => {
     const pulse = (Math.sin(time * 3) + 1) * 0.5;
     sceneCtx.fillStyle = "rgba(255,255,255," + (0.12 + pulse * 0.12) + ")";
     sceneCtx.fillRect(width * 0.06, height * 0.88, width * (0.42 + level * 0.46), height * (0.03 + phase * 0.03));
+  }
+
+  const archiveSources = [
+    { name: "STATION 09", reel: "TX-094", cards: [
+      ["AFTER THE LAST PROGRAM", "Transmission continues after closing.", "Please leave the receiver tuned."],
+      ["THE EMPTY HOUR", "No scheduled program occupies this slot.", "A place has been reserved for it."],
+      ["RETURN TO CARRIER", "Picture recovered from the carrier band.", "The original sound was not retained."],
+      ["LOCAL IDENTIFICATION", "This station serves the surrounding area.", "The surrounding area has changed."],
+      ["PLEASE STAND BY", "A replacement program is being prepared.", "There is no need to adjust your set."],
+      ["END OF REEL", "This recording ends where it began.", "Rewind to the first available frame."]
+    ] },
+    { name: "FIELD RECORDINGS", reel: "FR-218", cards: [
+      ["NORTH RELAY", "The relay tower was visible from the road.", "No access road appears on the map."],
+      ["COASTAL SURVEY", "A horizon recovered from an unmarked tape.", "The tide has not moved in this shot."],
+      ["MILE MARKER 00", "Camera facing the direction of travel.", "The same marker appears in every reel."],
+      ["NIGHT WINDOW", "Exterior lights recorded at 02:14.", "The building was vacant at the time."],
+      ["RAIN AT THE RECEIVER", "Interference increases with the weather.", "The weather report was recorded indoors."],
+      ["RETURN JOURNEY", "Last image before the operator returned.", "The return was not logged."]
+    ] },
+    { name: "SERVICE COPIES", reel: "SC-006", cards: [
+      ["REFERENCE FRAME", "Retain this frame for future comparison.", "The reference receiver is no longer available."],
+      ["ALIGNMENT CHECK", "Convergence within expected tolerances.", "Some lines may belong to another picture."],
+      ["SYNC RECOVERY", "Horizontal synchronization recovered.", "The vertical record remains incomplete."],
+      ["LOOP INSPECTION", "Inspect the splice before replaying.", "No physical splice could be located."],
+      ["HOLD FOR REVIEW", "Do not erase the preceding material.", "The preceding material is missing."],
+      ["DUPLICATE MASTER", "A service copy of the original master.", "Both copies identify the other as original."]
+    ] }
+  ];
+
+  function drawArchiveFeed({ sceneCtx, state, width, height, time }) {
+    const source = archiveSources[state.adaptive.archiveSource];
+    const index = state.adaptive.archiveCard;
+    const card = source.cards[index];
+    const drift = state.adaptive.archiveDrift / 100;
+    const small = width < 640;
+    const textScale = Math.min(width / 960, height / 720);
+    const fontSize = (base, minimum = 11) => Math.max(base, minimum / textScale);
+    function paragraph(text, y, size) {
+      sceneCtx.font = size + 'px "Consolas", monospace';
+      let line = '';
+      for (const word of text.split(' ')) {
+        const candidate = line ? line + ' ' + word : word;
+        if (line && sceneCtx.measureText(candidate).width > 816) {
+          sceneCtx.fillText(line, 72, y);
+          y += size * 1.3;
+          line = word;
+        } else line = candidate;
+      }
+      sceneCtx.fillText(line, 72, y);
+      return y;
+    }
+    sceneCtx.fillStyle = "#101512";
+    sceneCtx.fillRect(0, 0, width, height);
+    sceneCtx.save();
+    // A fixed authoring frame keeps all original text safely inside the CRT at
+    // every cabinet size. Drift stays within the reserved edge margin.
+    sceneCtx.scale(width / 960, height / 720);
+    sceneCtx.translate(Math.sin(time * .23) * drift * 7, Math.cos(time * .17) * drift * 5);
+    sceneCtx.strokeStyle = "#afba9b";
+    sceneCtx.lineWidth = 2;
+    sceneCtx.strokeRect(48, 42, 864, 630);
+    sceneCtx.fillStyle = "#c8d0b2";
+    sceneCtx.font = fontSize(18) + 'px "Consolas", monospace';
+    sceneCtx.fillText(small ? source.name : source.name + " / " + source.reel, 72, 82);
+    sceneCtx.fillText((small ? '' : 'REPLAY  ') + String(index + 1).padStart(2, "0") + " / 06", 680, 82);
+    sceneCtx.font = fontSize(36, 14) + 'px "Consolas", monospace';
+    sceneCtx.fillText(card[0], 72, 162);
+    sceneCtx.fillStyle = "#637565";
+    sceneCtx.font = '18px "Consolas", monospace';
+    if (!small) sceneCtx.fillText("BROADCAST ARCHIVE / RECOVERED MATERIAL", 72, 201);
+
+    sceneCtx.save();
+    sceneCtx.beginPath();
+    sceneCtx.rect(72, 238, 816, small ? 162 : 242);
+    sceneCtx.clip();
+    sceneCtx.strokeStyle = "#84917a";
+    sceneCtx.lineWidth = 2;
+    const motif = (index + state.adaptive.archiveSource) % 3;
+    if (motif === 0) {
+      for (let x = 72; x <= 888; x += 51) {
+        sceneCtx.beginPath(); sceneCtx.moveTo(x, 238); sceneCtx.lineTo(x, 480); sceneCtx.stroke();
+      }
+      for (let y = 238; y <= 480; y += 40) {
+        sceneCtx.beginPath(); sceneCtx.moveTo(72, y); sceneCtx.lineTo(888, y); sceneCtx.stroke();
+      }
+      sceneCtx.beginPath(); sceneCtx.arc(480, 359, 96, 0, Math.PI * 2); sceneCtx.stroke();
+    } else if (motif === 1) {
+      for (let y = 254; y < 480; y += 25) {
+        sceneCtx.beginPath();
+        for (let x = 72; x <= 888; x += 8) {
+          const lineY = y + Math.sin(x * .015 + index) * 11;
+          if (x === 72) sceneCtx.moveTo(x, lineY); else sceneCtx.lineTo(x, lineY);
+        }
+        sceneCtx.stroke();
+      }
+    } else {
+      for (let x = 94; x < 888; x += 65) {
+        const rise = 35 + (x * 17 + index * 37) % 165;
+        sceneCtx.strokeRect(x, 480 - rise, 38, rise);
+      }
+      sceneCtx.beginPath(); sceneCtx.moveTo(72, 445); sceneCtx.lineTo(888, 445); sceneCtx.stroke();
+    }
+    sceneCtx.restore();
+    sceneCtx.fillStyle = "#d9dcc3";
+    const bodySize = fontSize(23);
+    const bodyBottom = paragraph(card[1], small ? 450 : 540, bodySize);
+    if (state.adaptive.archiveSubtitle) {
+      sceneCtx.fillStyle = "#a9b798";
+      paragraph(card[2], bodyBottom + bodySize * 1.6, fontSize(21));
+    }
+    sceneCtx.fillStyle = "#87977c";
+    sceneCtx.font = fontSize(17) + 'px "Consolas", monospace';
+    sceneCtx.fillText(small ? '09 / ARCHIVE' : "09 / ARCHIVE SERVICE", 72, 640);
+    sceneCtx.restore();
   }
 
   function drawSnowFeed(env) {
@@ -535,6 +663,13 @@ window.WebCRTChannels = (() => {
       state.runtime = { ...runtimeDefaults };
     }
 
+    if (state.powerOn && channels[state.channel]?.mode === 'archive') {
+      const elapsed = (state.runtime.archiveElapsed || 0) + Math.max(0, deltaMs) * .001;
+      const advanced = Math.floor(elapsed / 12);
+      if (advanced) state.adaptive.archiveCard = (state.adaptive.archiveCard + advanced) % 6;
+      state.runtime.archiveElapsed = elapsed % 12;
+    }
+
     if (state.adaptive.timerRun > 0) {
       state.runtime.timerRemaining = Math.max(0, state.runtime.timerRemaining - deltaMs * 0.001);
       if (state.runtime.timerRemaining <= 0) {
@@ -553,6 +688,8 @@ window.WebCRTChannels = (() => {
       state.runtime = { ...runtimeDefaults };
     }
 
+    if (key === 'archiveCard' || key === 'archiveSource') state.runtime.archiveElapsed = 0;
+
     if (key === "timerMinutes") {
       state.runtime.timerLastMinutes = state.adaptive.timerMinutes;
       if (state.adaptive.timerRun === 0) {
@@ -569,6 +706,7 @@ window.WebCRTChannels = (() => {
 
   function formatChannelValue(control, value, state) {
     const key = control?.key;
+    if (key === 'archiveCard') return String(value + 1).padStart(2, '0') + ' / 06';
     if (Array.isArray(control?.options)) {
       return control.options[value] || control.options[0];
     }
@@ -597,6 +735,9 @@ window.WebCRTChannels = (() => {
         break;
       case "bars":
         drawColorBars(env);
+        break;
+      case "archive":
+        drawArchiveFeed(env);
         break;
       case "weather":
         drawWeatherFeed(env);

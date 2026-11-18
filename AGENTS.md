@@ -9,3 +9,4 @@ Read [README](README.md) for serving and check limits.
 
 - Responsive layout changes also run the optional `tests/layout.browser.mjs` check described in README. No default package installation is required for the static app.
 - Noise generation changes run `node --test tests/noise.test.mjs` and optional `tests/noise.browser.mjs`. Keep generation on the cached small map at the existing 90ms cadence; preserve Dead Air separately from channel 15's text-free feed and keep ordinary CRT compositing order.
+- Archive changes run `node --test tests/archive.test.mjs` and optional `tests/archive.browser.mjs`. Keep card/source changes resetting the 12-second replay interval and pause replay when off or untuned. Existing channel numbers remain stable; tests discover station count and timer/noise indices from the registry.
